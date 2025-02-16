@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import time
 
 import yaml
 from django.apps import apps
@@ -36,6 +37,8 @@ class ModelLoader(object):
         # Discover models we manage and load their schema into memory
         self.load_schema()
 
+        start_time = time.perf_counter()
+
         with transaction.atomic(using=self.connection.alias):
             # Scan content directories
             for directory in self.directories:
@@ -48,7 +51,12 @@ class ModelLoader(object):
                         model = self.managed_directories[model_folder.name]
                         # Second level should be files, or more folders
                         self.load_folder_files(model._meta.label_lower, model_folder)
-        logger.info("Loaded %d yamdl fixtures.", self.loaded)
+
+        logger.info(
+            "Loaded %d yamdl fixtures in %.3fs.",
+            self.loaded,
+            time.perf_counter() - start_time
+        )
 
     def load_folder_files(self, model_name, folder_path: Path):
         """
@@ -138,6 +146,8 @@ class ModelLoader(object):
         Works out which models are marked as managed by us, and writes a schema
         for them into the database.
         """
+        start_time = time.perf_counter()
+
         # Go through and collect the models
         self.managed_models = {}
         self.managed_directories = {}
@@ -151,4 +161,9 @@ class ModelLoader(object):
         with self.connection.schema_editor() as editor:
             for model in self.managed_models.values():
                 editor.create_model(model)
-        logger.info("Created yamdl schema for %s" % (", ".join(self.managed_models.keys()),))
+
+        logger.info(
+            "Created yamdl schema for %s in %.3fs",
+            ", ".join(self.managed_models.keys()),
+            time.perf_counter() - start_time
+        )
