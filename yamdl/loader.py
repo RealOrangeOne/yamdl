@@ -50,10 +50,19 @@ class ModelLoader(object):
                     ):
                         model = self.managed_directories[model_folder.name]
                         # Second level should be files, or more folders
+                        model_start_time = time.perf_counter()
+                        loaded_pre = self.loaded
                         self.load_folder_files(model._meta.label_lower, model_folder)
+                        logger.info(
+                            "Loaded %d %s instances in %.3fs.",
+                            self.loaded - loaded_pre,
+                            model._meta.label_lower,
+                            time.perf_counter() - model_start_time
+                        )
+
 
         logger.info(
-            "Loaded %d yamdl fixtures in %.3fs.",
+            "Finished loading %d yamdl fixtures in %.3fs.",
             self.loaded,
             time.perf_counter() - start_time
         )
